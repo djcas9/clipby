@@ -1,7 +1,7 @@
 NAME="clipby"
 DESCRIPTION="clipboard manipulation and organization"
 
-VERSION=$(shell cat $NAME.go | grep -oP "Version\s+?\=\s?\"\K.*?(?=\"$|$\)")
+# VERSION=$(shell cat $(NAME).go | grep -oP "Version\s+?\=\s?\"\K.*?(?=\"$|$\)")
 CWD=$(shell pwd)
 
 NO_COLOR=\033[0m
@@ -19,13 +19,13 @@ endif
 
 all: deps
 	@mkdir -p bin/
-	@$(ECHO) "$(OK_COLOR)==> Building $(NAME) - $(VERSION) $(NO_COLOR)"
+	@$(ECHO) "$(OK_COLOR)==> Building $(NAME) $(NO_COLOR)"
 	@godep go build -o bin/$(NAME)
 	@chmod +x bin/$(NAME)
 	@$(ECHO) "$(OK_COLOR)==> Done$(NO_COLOR)"
 
 
-deps: bindata
+deps:
 	@$(ECHO) "$(OK_COLOR)==> Installing dependencies$(NO_COLOR)"
 	@godep get
 

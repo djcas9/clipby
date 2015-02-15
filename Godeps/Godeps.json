@@ -1,0 +1,14 @@
+{
+	"ImportPath": "github.com/mephux/clipby",
+	"GoVersion": "go1.3.1",
+	"Deps": [
+		{
+			"ImportPath": "github.com/asaskevich/govalidator",
+			"Rev": "e43f387b7891260b3948717f64dcd146979a2af1"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/go-mruby",
+			"Rev": "5e4ce1f98242b25341c3291270ad60f4e9281699"
+		}
+	]
+}

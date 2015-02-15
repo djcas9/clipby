@@ -1,117 +1,112 @@
 package main
 
-/*
-#cgo CFLAGS: -x objective-c
-#cgo LDFLAGS: -framework Cocoa
-#import <Cocoa/Cocoa.h>
-
-static inline BOOL IsEmpty(id thing) {
-	return thing == nil
-	|| ([thing respondsToSelector:@selector(length)]
-	&& [(NSData *)thing length] == 0)
-	|| ([thing respondsToSelector:@selector(count)]
-	&& [(NSArray *)thing count] == 0);
-}
-
-const char* GetPaste() {
-
-	NSArray *supportedTypes = [NSArray arrayWithObjects: NSPasteboardTypeRTF, NSPasteboardTypeRTFD,
-	NSPasteboardTypeRuler, NSPasteboardTypeMultipleTextSelection, NSRTFPboardType,
-	NSRTFDPboardType, NSPasteboardTypeTabularText, NSStringPboardType, nil];
-
-	NSPasteboard*  myPasteboard  = [NSPasteboard pasteboardWithName:NSGeneralPboard];
-
-	NSString *bestType = [myPasteboard availableTypeFromArray:supportedTypes];
-
-	// NSLog( @"%@", bestType );
-
-	NSString* myString = [myPasteboard  stringForType:bestType];
-
-	if (bestType == (id)[NSNull null] || IsEmpty(myString)) {
-		NSLog( @"%@", bestType );
-		myString = @"";
-	}
-
-    return [myString UTF8String];
-}
-*/
-import "C"
 import (
-	"crypto/sha256"
-	"fmt"
-	"io"
-	"time"
+	"os"
+	"os/signal"
+	"path"
 
-	valid "github.com/asaskevich/govalidator"
+	log "github.com/Sirupsen/logrus"
+	"github.com/Unknwon/com"
+	"gopkg.in/alecthomas/kingpin.v1"
+
 	"github.com/mitchellh/go-mruby"
 )
 
-var (
-	old = ""
+const (
+	Name    = "Clipby"
+	Version = "0.1.0"
 )
 
-const ()
+var (
+	Debug = kingpin.Flag("debug", "Enable debug mode.").Bool()
+	Quiet = kingpin.Flag("quiet", "Remove all output logging.").Short('q').Bool()
 
-func main() {
-	mrb := mruby.NewMrb()
-	defer mrb.Close()
+	MainPath   = ""
+	PluginPath = ""
 
-	// Our custom function we'll expose to Ruby. The first return
-	// value is what to return from the func and the second is an
-	// exception to raise (if any).
-	addFunc := func(m *mruby.Mrb, self *mruby.MrbValue) (mruby.Value, mruby.Value) {
-		args := m.GetArgs()
-		return mruby.Int(args[0].Fixnum() + args[1].Fixnum()), nil
+	OutputChan = make(chan CBType)
+	DoneChan   = make(chan bool)
+)
+
+func init() {
+	kingpin.Version(Version)
+	kingpin.Parse()
+
+	log.SetOutput(os.Stderr)
+
+	if *Debug {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
 	}
 
-	// Lets define a custom class and a class method we can call.
-	class := mrb.DefineClass("Example", nil)
-	class.DefineClassMethod("add", addFunc, mruby.ArgsReq(2))
-
-	// Let's call it and inspect the result
-	result, err := mrb.LoadString(`Example.add(12, 30)`)
-	if err != nil {
-		panic(err.Error())
+	if *Quiet {
+		log.SetLevel(log.FatalLevel)
 	}
 
-	// This will output "Result: 42"
-	fmt.Printf("Result: %s\n", result.String())
 }
 
-func Run() {
+func main() {
+	log.Infof("Initializing %s Version: %s.", Name, Version)
 
-	for _ = range time.Tick(time.Second) {
-		data := C.GetPaste()
-		str := C.GoString(data)
+	home, err := com.HomeDir()
 
-		if len(str) > 0 {
-			h256 := sha256.New()
-			io.WriteString(h256, str)
-			sha := fmt.Sprintf("%x", h256.Sum(nil))
+	if err != nil {
+		log.Fatal(err)
+	}
 
-			if sha != old {
-				old = sha
+	MainPath := path.Join(home, ".clipby")
+	PluginPath := path.Join(home, ".clipby", "plugins")
 
-				if valid.IsEmail(str) {
-					fmt.Println("GOT EMAIL: ", str)
-				} else if valid.IsURL(str) {
-					fmt.Println("GOT URL: ", str)
-				} else if valid.IsJSON(str) {
-					fmt.Println("GOT JSON: ", str)
-				} else if valid.IsIP(str) {
-					fmt.Println("GOT IP: ", str)
+	os.Mkdir(MainPath, 0777)
+	os.Mkdir(PluginPath, 0777)
 
-					if valid.IsIPv4(str) {
-						fmt.Println("GOT IPv4: ", str)
-					} else if valid.IsIPv6(str) {
-						fmt.Println("GOT IPv6: ", str)
-					}
-				}
+	log.Info("Loading plugins.")
 
-			} else {
-				// fmt.Println(sha, "\n")
+	vm := VM{}
+
+	vm.Mrb = mruby.NewMrb()
+	defer vm.Close()
+
+	vm.Init()
+
+	plugins, err := GetPlugins(PluginPath)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, plugin := range plugins {
+		log.Info("LOAD: ", plugin.Name)
+		vm.Load(plugin)
+	}
+
+	if len(plugins) <= 0 {
+		log.Warn("No plugins found.")
+	}
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+
+	log.Info("Monitoring System Clipboard.")
+	go ClipBoardStart()
+
+	for {
+		select {
+		case sig := <-sigChan:
+			if sig.String() == "interrupt" {
+				log.Debug("Closing done channel.")
+				close(DoneChan)
 			}
-		}
+		case data := <-OutputChan:
 
+			// fmt.Println("GOT DATA:", data)
+			go vm.Run(data)
+
+		case <-DoneChan:
+			log.Info("Closing Open Files...")
+			log.Info("Cleaning up...")
+			os.Exit(1)
+		}
 	}
 }
