@@ -37,6 +37,8 @@ module Clipby
 end
 ```
 
+![plugin output]()
+
 # Notes
   
   * THIS IS BETA
