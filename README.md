@@ -37,7 +37,7 @@ module Clipby
 end
 ```
 
-![plugin output]()
+![plugin output](https://raw.githubusercontent.com/mephux/clipby/master/plugin-exaple-output.png)
 
 # Notes
   
