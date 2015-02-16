@@ -77,13 +77,16 @@ func main() {
 	}
 
 	for _, plugin := range plugins {
-		log.Info("LOAD: ", plugin.Name)
+		log.Info("\tLOAD: ", plugin.Name)
 		vm.Load(plugin)
 	}
 
 	if len(plugins) <= 0 {
 		log.Warn("No plugins found.")
 	}
+
+	// Get ruby class names
+	vm.PluginNames()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)

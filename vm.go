@@ -1,28 +1,42 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/mitchellh/go-mruby"
 )
 
 type VM struct {
-	Mrb *mruby.Mrb
+	Mrb           *mruby.Mrb
+	PluginClasses []string
 }
 
 func (self *VM) Close() {
 	self.Close()
 }
 
-func (self *VM) PluginNames() {
+func (self *VM) PluginNames() []string {
 	result, err := self.Mrb.LoadString("Clipby.constants.select {|c| Class === Clipby.const_get(c)}")
 
 	if err != nil {
-		panic(err.Error())
+		log.Fatal(err.Error())
 	}
 
-	fmt.Printf("Result: %s\n", result.Type())
+	var classes []string
+	data := strings.Replace(strings.Replace(result.String(), "[", "", 1), "]", "", 1)
+	array := strings.Split(data, ", ")
+
+	for _, class := range array {
+		c := class[1:]
+		classes = append(classes, c)
+	}
+
+	self.PluginClasses = classes
+
+	return classes
 }
 
 func (self *VM) Init() {
@@ -56,20 +70,25 @@ func (self *VM) Init() {
 
 func (self *VM) Run(cb CBType) {
 
-	// this needs to be done autostyle
-	code := fmt.Sprintf("Clipby::%s.run('%s', %q)", "ReplacePlugin", cb.Type, cb.Data)
+	for _, class := range self.PluginClasses {
 
-	result, err := self.Mrb.LoadString(code)
+		// this needs to be done autostyle
+		code := fmt.Sprintf("Clipby::%s.run('%s', %q)", class, cb.Type, base64.StdEncoding.EncodeToString([]byte(cb.Data)))
 
-	if err != nil {
-		log.Fatal(err.Error())
+		result, err := self.Mrb.LoadString(code)
+
+		if err != nil {
+			log.Fatal(err.Error())
+		}
+
+		data := result.String()
+
+		if len(data) > 0 && *Debug {
+			log.Debugf("Plugin (%s) Return Value(s): %s", class, result.String())
+		}
+
 	}
 
-	data := result.String()
-
-	if len(data) > 0 && *Debug {
-		log.Debugf("Plugin Return Value(s): %s", result.String())
-	}
 }
 
 func (self *VM) Load(plugin *Plugin) {
