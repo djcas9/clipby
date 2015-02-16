@@ -1,47 +1,12 @@
 package main
 
-/*
-#cgo CFLAGS: -x objective-c
-#cgo LDFLAGS: -framework Cocoa
-#import <Cocoa/Cocoa.h>
-
-static inline BOOL IsEmpty(id thing) {
-	return thing == nil
-	|| ([thing respondsToSelector:@selector(length)]
-	&& [(NSData *)thing length] == 0)
-	|| ([thing respondsToSelector:@selector(count)]
-	&& [(NSArray *)thing count] == 0);
-}
-
-const char* GetPaste() {
-
-	NSArray *supportedTypes = [NSArray arrayWithObjects: NSPasteboardTypeRTF, NSPasteboardTypeRTFD,
-	NSPasteboardTypeRuler, NSPasteboardTypeMultipleTextSelection, NSRTFPboardType,
-	NSRTFDPboardType, NSPasteboardTypeTabularText, NSStringPboardType, nil];
-
-	NSPasteboard*  myPasteboard  = [NSPasteboard pasteboardWithName:NSGeneralPboard];
-
-	NSString *bestType = [myPasteboard availableTypeFromArray:supportedTypes];
-
-	NSString* myString = [myPasteboard  stringForType:bestType];
-
-	if (bestType == (id)[NSNull null] || IsEmpty(myString)) {
-		myString = @"";
-	}
-
-    return [myString UTF8String];
-}
-*/
-import "C"
-
 import (
 	"crypto/sha256"
 	"fmt"
 	"io"
 
-	"time"
-
 	valid "github.com/asaskevich/govalidator"
+	"github.com/tjgq/clipboard"
 )
 
 type CBType struct {
@@ -54,10 +19,11 @@ var (
 )
 
 func ClipBoardStart() {
-	for _ = range time.Tick(time.Second) {
-		data := C.GetPaste()
-		str := C.GoString(data)
 
+	clipboard.Notify(CBChan)
+
+	for str := range CBChan {
+		fmt.Println("GOT DATA!!!", str)
 		if len(str) > 0 {
 			h256 := sha256.New()
 			io.WriteString(h256, str)
@@ -88,9 +54,8 @@ func ClipBoardStart() {
 				}
 
 				OutputChan <- cb
-
 			}
 		}
-
 	}
+
 }

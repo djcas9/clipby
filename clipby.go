@@ -7,9 +7,8 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/Unknwon/com"
-	"gopkg.in/alecthomas/kingpin.v1"
-
 	"github.com/mitchellh/go-mruby"
+	"gopkg.in/alecthomas/kingpin.v1"
 )
 
 const (
@@ -25,6 +24,7 @@ var (
 	PluginPath = ""
 
 	OutputChan = make(chan CBType)
+	CBChan     = make(chan string)
 	DoneChan   = make(chan bool)
 )
 
@@ -107,7 +107,6 @@ func main() {
 			go vm.Run(data)
 
 		case <-DoneChan:
-			log.Info("Closing Open Files...")
 			log.Info("Cleaning up...")
 			os.Exit(1)
 		}
