@@ -1,7 +1,7 @@
 package main
 
 import (
-	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -49,15 +49,14 @@ func (self *VM) Init() {
 		args := m.GetArgs()
 
 		var pluginName string
-		result, err := m.LoadString("puts @name")
 
-		if err != nil {
+		if len(self.String()) <= 0 {
 			pluginName = "N/A"
 		} else {
-			pluginName = result.String()
+			pluginName = self.String()
 		}
 
-		output := fmt.Sprintf("%s Output: %s", pluginName, args[0].String())
+		output := fmt.Sprintf("%s STDOUT: %s", pluginName, args[0].String())
 		log.Debug(output)
 
 		return mruby.Int(1), nil
@@ -72,8 +71,12 @@ func (self *VM) Run(cb CBType) {
 
 	for _, class := range self.PluginClasses {
 
-		// this needs to be done autostyle
-		code := fmt.Sprintf("Clipby::%s.run('%s', %q)", class, cb.Type, base64.StdEncoding.EncodeToString([]byte(cb.Data)))
+		//
+		// TODO: mruby has a max token len. We can split the cb data
+		// and send as a multi-part array or try to compress the data.
+		//
+		b := hex.EncodeToString([]byte(cb.Data))
+		code := fmt.Sprintf(`Clipby::%s.run('%s', ["%s"])`, class, cb.Type, b)
 
 		result, err := self.Mrb.LoadString(code)
 
@@ -84,9 +87,10 @@ func (self *VM) Run(cb CBType) {
 		data := result.String()
 
 		if len(data) > 0 && *Debug {
-			log.Debugf("Plugin (%s) Return Value(s): %s", class, result.String())
+			log.Debugf("Clipby::%s Return: %s", class, result.String())
 		}
 
+		self.Mrb.FullGC()
 	}
 
 }

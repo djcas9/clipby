@@ -17,6 +17,7 @@ MRuby::Build.new do |conf|
   # conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
   # conf.gem :git => 'git@github.com:masuidrive/mrbgems-example.git', :branch => 'master', :options => '-v'
   conf.gem :git => 'git@github.com:mattn/mruby-base64.git', :branch => 'master', :options => '-v'
+  conf.gem :git => 'https://github.com/suzukaze/mruby-msgpack.git'
 
   conf.gem :git => 'git@github.com:iij/mruby-io.git', :branch => 'master', :options => '-v'
   conf.gem :git => 'git@github.com:iij/mruby-pack.git', :branch => 'master', :options => '-v'
