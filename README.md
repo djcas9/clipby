@@ -39,6 +39,18 @@ end
 
 ![plugin output](https://raw.githubusercontent.com/mephux/clipby/master/plugin-exaple-output.png)
 
+# Build
+
+  * make sure you have godep installed.
+  * clone the go-mruby repo.
+  * build mruby using the build_config.rb in the clipby root dir.
+  * make sure to add gems you make need - by default i add base64, socket and pack.
+  * copy the libmruby.a to the root of the clipby dir.
+  * make
+  * Enjoy!
+
+
+
 # Notes
   
   * THIS IS BETA
