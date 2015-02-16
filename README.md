@@ -12,24 +12,40 @@ the clipboard.
 The run function must return a type and data.
 
 ```ruby
+#
+# Clipby Module
+#
+# Clipby adds a few things but not much.
+# Subclass Plugin for helpers and validation methods.
+#
 module Clipby
 
+  #
+  # Subclass from Clipby::Plugin
+  #
   class ReplacePlugin < Plugin
 
     def initialize
-      @name = "Replace Plugin"
+      @name = "Replace Plugin Plugin"
 
       @description <<-description
-      Replace the letter e with ZZ from all data put into the system clipboard.
+      replace e with word
       description
 
       @author = "Dustin Willis Webber"
       @version = "0.1.0"
     end
 
+    def self.some_network_stuff
+      s = TCPSocket.open("intel.criticalstack.com", 80)
+      s.write("GET / HTTP/1.0\r\n\r\n")
+      log s.read
+      s.close
+    end
+
     def self.run(type, data)
-      log "Got Data!"
-      return type, data.gsub!("e", "ZZ")
+      decode = Base64.decode(data)
+      return type, decode.gsub!("e", "(づ｡◕‿‿◕｡)づ ︵ ┻━┻")
     end
 
   end
