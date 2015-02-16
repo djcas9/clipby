@@ -70,6 +70,6 @@ end
 # Notes
   
   * THIS IS BETA
-  * This is Mac OSX only.
+  * Should work on linux, mac osx and windows. (I have been building on macosx tho)
   * Clipby will create $HOME/.clipby & $HOME/.clipby/plugins/
   * Any .rb file in plugins will be loaded automatically.
